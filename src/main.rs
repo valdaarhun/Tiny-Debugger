@@ -1,5 +1,10 @@
-use nix::{unistd::{execvp, fork, ForkResult, Pid}, sys::{ptrace, signal::{kill, Signal::{SIGINT}}, wait::waitpid}};
-use std::{env, ffi::CString, process::exit};
+use nix::sys::{ptrace, signal::{kill, Signal::{SIGINT}}};
+use nix::unistd::{execvp, fork, ForkResult, Pid};
+use nix::wait::waitpid;
+use std::collection::HashMap
+use std::{env, mem};
+use std::ffi::{c_void, CString};
+use std::process::exit;
 use linenoise;
 
 fn vector_of_string_to_vector_of_cstring(args: &Vec<String>) -> Vec<CString> {
