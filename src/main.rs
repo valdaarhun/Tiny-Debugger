@@ -9,6 +9,58 @@ use std::process::exit;
 use linenoise;
 
 const INT3: i64 = 0xcc;
+const REGISTER_COUNT: i32 = 27;
+
+// See: /usr/include/x86_64-linux-gnu/sys/user.h
+#[allow(non_camel_case_types)]
+enum Register{
+    r15, r14, r13, r12,
+    rbp, rbx, r11, r10,
+    r9, r8, rax, rcx,
+    rdx, rsi, rdi,
+    orig_rax, rip, cs,
+    eflags, rsp, ss,
+    fs_base, gs_base,
+    ds, es, fs, gs
+}
+
+struct RegDescriptor{
+    reg: Register,
+    dwarf_reg_no: i32,
+    reg_name: &'static str,
+}
+
+// For DWARF register number mapping, see: https://www.uclibc.org/docs/psABI-x86_64.pdf
+// -1 indicates the register has no register number
+const REG_DWARF_MAP: [RegDescriptor; 27] = [
+    RegDescriptor{reg: Register::r15, dwarf_reg_no: 15, reg_name: "r15"},
+    RegDescriptor{reg: Register::r14, dwarf_reg_no: 14, reg_name: "r14"},
+    RegDescriptor{reg: Register::r13, dwarf_reg_no: 13, reg_name: "r13"},
+    RegDescriptor{reg: Register::r12, dwarf_reg_no: 12, reg_name: "r12"},
+    RegDescriptor{reg: Register::rbp, dwarf_reg_no: 6, reg_name: "rbp"},
+    RegDescriptor{reg: Register::rbx, dwarf_reg_no: 3, reg_name: "rbx"},
+    RegDescriptor{reg: Register::r11, dwarf_reg_no: 11, reg_name: "r11"},
+    RegDescriptor{reg: Register::r10, dwarf_reg_no: 10, reg_name: "r10"},
+    RegDescriptor{reg: Register::r9, dwarf_reg_no: 9, reg_name: "r9"},
+    RegDescriptor{reg: Register::r8, dwarf_reg_no: 8, reg_name: "r8"},
+    RegDescriptor{reg: Register::rax, dwarf_reg_no: 0, reg_name: "rax"},
+    RegDescriptor{reg: Register::rcx, dwarf_reg_no: 2, reg_name: "rcx"},
+    RegDescriptor{reg: Register::rdx, dwarf_reg_no: 1, reg_name: "rdx"},
+    RegDescriptor{reg: Register::rsi, dwarf_reg_no: 4, reg_name: "rsi"},
+    RegDescriptor{reg: Register::rdi, dwarf_reg_no: 5, reg_name: "rdi"},
+    RegDescriptor{reg: Register::orig_rax, dwarf_reg_no: -1, reg_name: "orig_rax"},
+    RegDescriptor{reg: Register::rip, dwarf_reg_no: -1, reg_name: "rip"},
+    RegDescriptor{reg: Register::cs, dwarf_reg_no: 51, reg_name: "cs"},
+    RegDescriptor{reg: Register::eflags, dwarf_reg_no: -1, reg_name: "eflags"},
+    RegDescriptor{reg: Register::rsp, dwarf_reg_no: 7, reg_name: "rsp"},
+    RegDescriptor{reg: Register::ss, dwarf_reg_no: 52, reg_name: "ss"},
+    RegDescriptor{reg: Register::fs_base, dwarf_reg_no: 58, reg_name: "fs_base"},
+    RegDescriptor{reg: Register::gs_base, dwarf_reg_no: 59, reg_name: "gs_base"},
+    RegDescriptor{reg: Register::ds, dwarf_reg_no: 53, reg_name: "ds"},
+    RegDescriptor{reg: Register::es, dwarf_reg_no: 50, reg_name: "es"},
+    RegDescriptor{reg: Register::fs, dwarf_reg_no: 54, reg_name: "fs"},
+    RegDescriptor{reg: Register::gs, dwarf_reg_no: 55, reg_name: "gs"},
+];
 
 fn vector_of_string_to_vector_of_cstring(args: &Vec<String>) -> Vec<CString> {
     args.iter().map(|arg| CString::new(arg.clone()).unwrap()).collect::<Vec<CString>>()
@@ -118,7 +170,7 @@ impl Debugger{
         let addr_ptr = unsafe{ mem::transmute::<u64, *mut c_void>(u64::from_str_radix(addr, 16).unwrap()) };
 
         match self.breakpoints.get(&addr_ptr){
-            Some(breakpoint) => println!("Breakpoint exists"),
+            Some(_breakpoint) => println!("Breakpoint exists"),
             None => println!("Nothing"),
         }
 
